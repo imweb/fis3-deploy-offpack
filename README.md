@@ -2,7 +2,7 @@
 
 将项目产出成离线包，http路径变成了本地的文件路径。
 
-···
+```
 fis.plugin('offpack', {
     // 产出目录
     to: '../pack',
@@ -14,4 +14,4 @@ fis.plugin('offpack', {
         image: 'http://9.url.cn/edu/activity/'
     }
 })
-···
+```
