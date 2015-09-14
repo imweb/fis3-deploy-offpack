@@ -49,9 +49,26 @@ function zip(zipPath) {
     archive.finalize();
 }
 
+// 删除目录
+function rmdir(dir) {
+    var files = [];
+    if( fs.existsSync(dir) ) {
+        files = fs.readdirSync(dir);
+        files.forEach(function(file){
+            var curPath = path.join(dir, file);
+            if(fs.lstatSync(curPath).isDirectory()) { // recurse
+                rmdir(curPath);
+            } else { 
+                fs.unlinkSync(curPath);
+            }
+        });
+        fs.rmdirSync(dir);
+    }
+}
+
 /*
  * @TODO: 按照文件本身的依赖打包，多余的文件不打包
- * 多余的文件打进了离线包
+ * 多余的图片文件打进了离线包
  */
 module.exports = function(options, modified, total, next) {
 
@@ -62,10 +79,12 @@ module.exports = function(options, modified, total, next) {
         md5Reg = new RegExp('.[0-9a-z]{' + md5Len + '}$', 'mg'),
         zipPath = path.join(to, 'pack.zip');
 
-    if(fs.existsSync(to)) {
-        var exec = require('child_process').exec;
-        exec('rmdir ' + to.replace(/\//mg, '\\') + ' /s /q ')
-    }
+    // if(fs.existsSync(to)) {
+    //     var exec = require('child_process').exec;
+    //     exec('rmdir ' + to.replace(/\//mg, '\\') + ' /s /q ')
+    // }
+    
+    rmdir(to);
 
     var content,
         needFileInfo,
@@ -114,13 +133,13 @@ module.exports = function(options, modified, total, next) {
             /*
              * 分析同步css文件
              */
-
             var cssMatches = content.match(rStyle);
             if (cssMatches) {
                 needFileInfo = fis.file.wrap(cssMatches[2].replace(options.httpPrefix.css, ''));
                 neededCss.push(needFileInfo.realpathNoExt.replace(md5Reg, '') /*+ needFileInfo.ext*/);
             }
 
+            // console.log(file.subpath);
             moveTo(to + options.httpPrefix.html.replace(/^https?:\//, ''), file);
 
             // 分析 links相关资源，copy loader里面的源代码
