@@ -5,14 +5,11 @@
 按需打包需要的js和css。
 
 ##### js 打包
-1. html页面本身script src引用的同步依赖
-2. fis3-postpackager-loader 分析的async异步依赖（这里暂时依赖loader分析的结果）
+1. 暂时全部打包，后面会根据packager插件，做到按需打包
 
 ##### css 打包
-1. 正则匹配页面同步依赖的css文件。
 
-=======
->>>>>>> 31268c067673d07e25c3930a7ef36c82189ebc54
+1. 正则匹配页面同步依赖的css文件。
 ```
 fis.plugin('offpack', {
     // 产出目录
@@ -26,3 +23,7 @@ fis.plugin('offpack', {
     }
 })
 ```
+
+
+##### image打包
+获取html、scss、async.scss中link到的image，产出到最终目录，只有被引用的图片才会被打到离线包中。
