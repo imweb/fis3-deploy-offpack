@@ -32,7 +32,7 @@ describe('fis-postpackager-iconfont', function() {
     fis.project.setProjectRoot(root);
 
     beforeEach(function() {
-        fis.match('**.{css,scss}', {
+        fis.match('**.{css,scss,sass}', {
                 domain: 'http://8.url.cn/edu/activity'
             })
             .match('::image', {
@@ -60,10 +60,21 @@ describe('fis-postpackager-iconfont', function() {
             .match(/(mod|badjs|bj-report)\.js$/, {
                 isMod: false
             })
+            .match(/\/(.+\.async)\.(scss|css)$/, { // 异步 css 包裹
+                isMod: true,
+                rExt: 'js',
+                isCssLike: true,
+                id: '$1_$2',
+                release: '$1_$2', // @todo 这里 $1.$2 竟然有 bug ，应该和上面的 tpl 性质一样
+                extras: {
+                    wrapcss: true
+                }
+            })
             .match('::package', {
                 prepackager: fis.plugin('csswrapper'),
                 postpackager: fis.plugin('loader', {
                     resourceType: 'mod',
+                    allInOne: true,
                     // obtainScript: false,
                     useInlineMap: true // 资源映射表内嵌
                 })
@@ -84,7 +95,7 @@ describe('fis-postpackager-iconfont', function() {
     it('fis3-deploy-offpack', function() {
 
         var pack = path.join(root, '../pack');
-        
+
         release({
             unique: true
         }, function() {

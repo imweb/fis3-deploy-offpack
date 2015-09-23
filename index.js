@@ -52,19 +52,46 @@ function zip(zipPath) {
 // 删除目录
 function rmdir(dir) {
     var files = [];
-    if( fs.existsSync(dir) ) {
+    if (fs.existsSync(dir)) {
         files = fs.readdirSync(dir);
-        files.forEach(function(file){
+        files.forEach(function(file) {
             var curPath = path.join(dir, file);
-            if(fs.lstatSync(curPath).isDirectory()) { // recurse
+            if (fs.lstatSync(curPath).isDirectory()) { // recurse
                 rmdir(curPath);
-            } else { 
+            } else {
                 fs.unlinkSync(curPath);
             }
         });
         fs.rmdirSync(dir);
     }
 }
+
+
+function filterImage(ids) {
+    var ret = [];
+    ids.forEach(function(id) {
+        if (/\.(png|gif|jpg)/.test(id)) {
+            ret.push(id);
+        }
+    });
+
+    return ret;
+}
+
+function uniqList(arr) {
+    var ret = [],
+        tmpl = {},
+        item;
+    for (var k = 0, len = arr.length; k < len; k++) {
+        item = arr[k];
+        if (!tmpl[item]) {
+            tmpl[item] = 1;
+            ret.push(item);
+        }
+    }
+    return ret;
+}
+
 
 /*
  * @TODO: 按照文件本身的依赖打包，多余的文件不打包
@@ -79,14 +106,10 @@ module.exports = function(options, modified, total, next) {
         md5Reg = new RegExp('.[0-9a-z]{' + md5Len + '}$', 'mg'),
         zipPath = path.join(to, 'pack.zip');
 
-
-
-    // if(fs.existsSync(to)) {
-    //     var exec = require('child_process').exec;
-    //     exec('rmdir ' + to.replace(/\//mg, '\\') + ' /s /q ')
-    // }
-    
     rmdir(to);
+
+    var allImagesList = [],
+        usedImageList = [];
 
     var content,
         needFileInfo,
@@ -108,29 +131,26 @@ module.exports = function(options, modified, total, next) {
          * 依赖的图片还包括css中的图片，这里暂不处理图片
          */
         if (file.isHtmlLike && ext.dirname === projectPath) {
-            // console.log(file.links);
             content = file.getContent();
-            // console.log(content);
             // 借助于loader插件的resourceMap分析异步依赖
-            var matches = content.match(sourceMap);
-            if (matches) {
-                // asyncs 异步JS依赖
-                var asyncs = JSON.parse(matches[1]).res || {};
-                for (var key in asyncs) {
-                    needFileInfo = fis.file.wrap(asyncs[key].url.replace(options.httpPrefix.js, ''));
-                    // delete md5
-                    neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
-                }
-            }
-
-            // 页面script标签引入的js文件
-            var scriptMatches = content.match(rScript);
-            if (scriptMatches) {
-                // console.log(scriptMatches[2]);
-                needFileInfo = fis.file.wrap(scriptMatches[2].replace(options.httpPrefix.js, ''));
-                neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
-            }
-
+            // TODO js 按需打包
+            // var matches = content.match(sourceMap);
+            // if (matches) {
+            //     // asyncs 异步JS依赖
+            //     var asyncs = JSON.parse(matches[1]).res || {};
+            //     for (var key in asyncs) {
+            //         needFileInfo = fis.file.wrap(asyncs[key].url.replace(options.httpPrefix.js, ''));
+            //         // delete md5
+            //         neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
+            //     }
+            //     // 页面script标签引入的js文件
+            //     // 同步js
+            //     var scriptMatches = content.match(rScript);
+            //     if (scriptMatches) {
+            //         needFileInfo = fis.file.wrap(scriptMatches[2].replace(options.httpPrefix.js, ''));
+            //         neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
+            //     }
+            // }
 
             /*
              * 分析同步css文件
@@ -138,29 +158,36 @@ module.exports = function(options, modified, total, next) {
             var cssMatches = content.match(rStyle);
             if (cssMatches) {
                 needFileInfo = fis.file.wrap(cssMatches[2].replace(options.httpPrefix.css, ''));
-                neededCss.push(needFileInfo.realpathNoExt.replace(md5Reg, '') /*+ needFileInfo.ext*/);
+                neededCss.push(needFileInfo.realpathNoExt.replace(md5Reg, '') /*+ needFileInfo.ext*/ );
             }
 
-            // console.log(file.subpath);
+            usedImageList = usedImageList.concat(filterImage(file.links));
+            // console.log(file.links);
             moveTo(to + options.httpPrefix.html.replace(/^https?:\//, ''), file);
 
             // 分析 links相关资源，copy loader里面的源代码
         } else if (file.isJsLike) {
-            // js 这里有没有被用到的部分，暂时缓存
+            // async css
+            usedImageList = usedImageList.concat(filterImage(file.links));
+
             allJs.push(file);
         } else if (file.isCssLike) {
-            // moveTo(to + options.httpPrefix.css.replace(/^https?:\//, ''), file);
+
+            usedImageList = usedImageList.concat(filterImage(file.links));
+
             allCss.push(file);
         } else if (file.isImage()) {
-            // 图片
-            moveTo(to + options.httpPrefix.image.replace(/^https?:\//, ''), file);
+            // 图片按需打包，未被引用的image不打包
+            allImagesList.push(file);
+            // moveTo(to + options.httpPrefix.image.replace(/^https?:\//, ''), file);
         }
     });
 
 
+    usedImageList = uniqList(usedImageList);
     // 过滤js
     allJs.forEach(function(file) {
-        if(neededJs.length > 0) {
+        if (neededJs.length > 0) {
             if (~neededJs.indexOf(file.subpath)) {
                 moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
             }
@@ -174,6 +201,12 @@ module.exports = function(options, modified, total, next) {
     allCss.forEach(function(file) {
         if (~neededCss.indexOf(file.subpathNoExt)) {
             moveTo(to + options.httpPrefix.css.replace(/^https?:\//, ''), file);
+        }
+    });
+
+    allImagesList.forEach(function(file) {
+        if (~usedImageList.indexOf(file.subpath)) {
+            moveTo(to + options.httpPrefix.image.replace(/^https?:\//, ''), file);
         }
     });
 
