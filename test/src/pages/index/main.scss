@@ -1,0 +1,72 @@
+@charset "utf-8";
+
+@import 'reset';
+
+@import "test";
+
+.contaner {
+    // background: #ccc;
+}
+
+.page {
+    overflow: hidden;
+    display: flex !important;
+    align-items: center;
+    // justify-content: center;
+    // background: #eee;
+}
+
+.middle {
+    // top: 50%;
+    width: 100%;
+    margin-top: -5%;
+}
+
+.bottom {
+    width: 100%;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
+
+.p1 {
+    
+    &-1 {
+        width: 11%;
+        position: absolute;
+        right: 11%;
+        top: 20%;
+
+        img {
+            width: 100%;
+        }
+    }
+
+    &-2 {
+        width: 100%;
+        position: absolute;
+        left: 0;
+        bottom: 0;
+    }
+}
+
+.p2 {}
+
+.p3, .p4, .p5, .p9 {
+    text-align: center;
+
+    .middle {
+        width: 95%;
+        margin: {
+            left: auto;
+            right: auto;
+        }
+    }
+}
+
+.p4 {
+    .middle {
+        width: 90%;
+    }
+}

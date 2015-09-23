@@ -32,7 +32,7 @@ function moveTo(dir, file) {
     fs.writeFileSync(path.join(dir, name), content, 'utf-8');
 }
 
-// zop folder
+// zip folder
 function zip(zipPath) {
     var archive = archiver('zip');
     archive.pipe(fs.createWriteStream(zipPath));
@@ -78,6 +78,8 @@ module.exports = function(options, modified, total, next) {
         md5Len = fis.config.get('project.md5Length'),
         md5Reg = new RegExp('.[0-9a-z]{' + md5Len + '}$', 'mg'),
         zipPath = path.join(to, 'pack.zip');
+
+
 
     // if(fs.existsSync(to)) {
     //     var exec = require('child_process').exec;
@@ -158,9 +160,15 @@ module.exports = function(options, modified, total, next) {
 
     // 过滤js
     allJs.forEach(function(file) {
-        if (~neededJs.indexOf(file.subpath)) {
+        if(neededJs.length > 0) {
+            if (~neededJs.indexOf(file.subpath)) {
+                moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
+            }
+        } else {
+            // resourceMap 不存在，全量包
             moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
         }
+
     });
 
     allCss.forEach(function(file) {

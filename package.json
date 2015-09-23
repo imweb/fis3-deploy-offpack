@@ -1,27 +1,32 @@
 {
-  "name": "fis3-deploy-offpack",
-  "version": "0.0.5",
-  "description": "fis3 offline package",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/haledeng/fis3-deploy-offpack"
-  },
-  "keywords": [
-    "fis3",
-    "offline",
-    "deploy"
-  ],
-  "dependencies": {
-    "archiver": "0.15.0"
-  },
-  "author": "helondeng",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/haledeng/fis3-deploy-offpack/issues"
-  },
-  "homepage": "https://github.com/haledeng/fis3-deploy-offpack"
+    "name": "fis3-deploy-offpack",
+    "version": "0.1.0",
+    "description": "fis3 offline package",
+    "main": "index.js",
+    "scripts": {
+        "test": "mocha test/"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/haledeng/fis3-deploy-offpack"
+    },
+    "keywords": [
+        "fis3",
+        "offline",
+        "deploy"
+    ],
+    "dependencies": {
+        "archiver": "0.15.0"
+    },
+    "devDependencies": {
+        "chai": "^3.2.0",
+        "fis3": "^3.0.17",
+        "mocha": "^2.2.5"
+    },
+    "author": "helondeng",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/haledeng/fis3-deploy-offpack/issues"
+    },
+    "homepage": "https://github.com/haledeng/fis3-deploy-offpack"
 }

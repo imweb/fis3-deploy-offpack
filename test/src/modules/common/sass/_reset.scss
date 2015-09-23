@@ -1,0 +1,73 @@
+body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, code, form, fieldset, legend, input, textarea, p, blockquote, th, td, menu {
+    margin: 0;
+    padding: 0;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+fieldset, img {
+    border: 0;
+}
+
+ol, ul {
+    list-style: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-size: 100%;
+    font-weight: normal;
+}
+
+input, textarea, select {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit
+}
+
+legend {
+    color: #000;
+}
+
+i {
+    font-style: normal;
+}
+
+html, body {
+    -webkit-text-size-adjust: none;
+    -webkit-touch-callout: none;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    //font-size:16px;
+    font-family: "Helvetica Neue", Helvetica, STHeiTi, "Roboto Regular", Roboto, "Droid Sans", "Microsoft Yahei", sans-serif;
+}
+
+html {
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+body, body > div {
+    font-size: 1.4rem;
+}
+
+
+a, div {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+a {
+    color: #fff;
+    text-decoration: none;
+}
+
+li:focus, span:focus, i:focus, img:focus {
+    outline: none;
+}
+
+// cannot just write input, otherwise will hide the full-screen button on video element
+input[type="text"], input[type="submit"], button {
+    -webkit-appearance: none;
+}
