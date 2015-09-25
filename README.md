@@ -20,7 +20,8 @@ fis.plugin('offpack', {
         js: 'http://7.url.cn/edu/activity/',
         css: 'http://8.url.cn/edu/activity/',
         image: 'http://9.url.cn/edu/activity/'
-    }
+    },
+    packImg: false // 是否将image图片打入离线包，默认是true
 })
 ```
 

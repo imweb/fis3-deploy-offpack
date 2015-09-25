@@ -87,7 +87,8 @@ describe('fis-postpackager-iconfont', function() {
                         js: 'http://7.url.cn/edu/activity',
                         css: 'http://8.url.cn/edu/activity',
                         image: 'http://9.url.cn/edu/activity'
-                    }
+                    },
+                    packImg: false
                 })
             });
     });
@@ -102,6 +103,7 @@ describe('fis-postpackager-iconfont', function() {
             // 文件是否生成
             expect(fs.existsSync(path.join(pack, 'pack.zip'))).to.be.true;
             expect(fs.existsSync(path.join(pack, 'ke.qq.com/activity', 'index.html'))).to.be.true;
+            expect(fs.existsSync(path.join(pack, '9.url.cn/edu/activity', 'pages/index/img/p2.jpg'))).to.be.false;
             expect(fs.existsSync(path.join(pack, '8.url.cn/edu/activity', 'pages/index/main.css'))).to.be.true;
             expect(fs.existsSync(path.join(pack, '7.url.cn/edu/activity', 'pages/index/main.js'))).to.be.true;
 

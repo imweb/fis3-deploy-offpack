@@ -1,17 +1,8 @@
 /*
- * 需要分析依赖项
- * 将依赖的文件及目录打包
- * 为被引用的文件不打包
- * 借助于fis3-postoackager-post方式
- * 可以根据最后的入口文件，再去分析async依赖
- *
- * fis3-pockager-loader 没有把async的依赖项放到pkg中
+ * 生成离线包
+ * TODO: 按需打包js文件
+ * packager 插件将需要的js生成到pkg中，deploy只打包pkg中的js
  */
-
-/**
- * fis.baidu.com
- */
-
 var path = require('path'),
     _ = fis.util,
     fs = _.fs,
@@ -68,13 +59,22 @@ function rmdir(dir) {
 
 
 function filterImage(ids) {
+    return filterFiles(ids, /\.(png|gif|jpg)$/);
+}
+
+
+function filterJs(ids) {
+    return filterFiles(ids, /\.js$/);
+}
+
+function filterFiles(ids, reg) {
+    if (!reg) return [];
     var ret = [];
     ids.forEach(function(id) {
-        if (/\.(png|gif|jpg)/.test(id)) {
+        if (reg.test(id)) {
             ret.push(id);
         }
     });
-
     return ret;
 }
 
@@ -104,7 +104,15 @@ module.exports = function(options, modified, total, next) {
         ext,
         md5Len = fis.config.get('project.md5Length'),
         md5Reg = new RegExp('.[0-9a-z]{' + md5Len + '}$', 'mg'),
-        zipPath = path.join(to, 'pack.zip');
+        zipPath;
+
+    options = _.extend({}, {
+        // 默认打包image
+        packImg: true, 
+        file: 'pack.zip'
+    }, options);
+
+    zipPath = path.join(to, options.file)
 
     rmdir(to);
 
@@ -133,7 +141,6 @@ module.exports = function(options, modified, total, next) {
         if (file.isHtmlLike && ext.dirname === projectPath) {
             content = file.getContent();
             // 借助于loader插件的resourceMap分析异步依赖
-            // TODO js 按需打包
             // var matches = content.match(sourceMap);
             // if (matches) {
             //     // asyncs 异步JS依赖
@@ -145,12 +152,13 @@ module.exports = function(options, modified, total, next) {
             //     }
             //     // 页面script标签引入的js文件
             //     // 同步js
-            //     var scriptMatches = content.match(rScript);
-            //     if (scriptMatches) {
-            //         needFileInfo = fis.file.wrap(scriptMatches[2].replace(options.httpPrefix.js, ''));
-            //         neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
-            //     }
+            // var scriptMatches = content.match(rScript);
+            // if (scriptMatches) {
+            //     needFileInfo = fis.file.wrap(scriptMatches[2].replace(options.httpPrefix.js, ''));
+            //     neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
             // }
+            // }
+            // console.log(neededJs);
 
             /*
              * 分析同步css文件
@@ -160,7 +168,6 @@ module.exports = function(options, modified, total, next) {
                 needFileInfo = fis.file.wrap(cssMatches[2].replace(options.httpPrefix.css, ''));
                 neededCss.push(needFileInfo.realpathNoExt.replace(md5Reg, '') /*+ needFileInfo.ext*/ );
             }
-
             usedImageList = usedImageList.concat(filterImage(file.links));
             // console.log(file.links);
             moveTo(to + options.httpPrefix.html.replace(/^https?:\//, ''), file);
@@ -173,8 +180,7 @@ module.exports = function(options, modified, total, next) {
             allJs.push(file);
         } else if (file.isCssLike) {
 
-            usedImageList = usedImageList.concat(filterImage(file.links));
-
+            usedImageList = usedImageList.concat(filterImage(file.links))
             allCss.push(file);
         } else if (file.isImage()) {
             // 图片按需打包，未被引用的image不打包
@@ -192,7 +198,6 @@ module.exports = function(options, modified, total, next) {
                 moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
             }
         } else {
-            // resourceMap 不存在，全量包
             moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
         }
 
@@ -204,11 +209,15 @@ module.exports = function(options, modified, total, next) {
         }
     });
 
-    allImagesList.forEach(function(file) {
-        if (~usedImageList.indexOf(file.subpath)) {
-            moveTo(to + options.httpPrefix.image.replace(/^https?:\//, ''), file);
-        }
-    });
+    // 默认打包image
+    if (options.packImg) {
+        allImagesList.forEach(function(file) {
+            if (~usedImageList.indexOf(file.subpath)) {
+                moveTo(to + options.httpPrefix.image.replace(/^https?:\//, ''), file);
+            }
+        });
+    }
+
 
     zip(zipPath);
     next();
