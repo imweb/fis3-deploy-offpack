@@ -12,6 +12,34 @@ var path = require('path'),
 var rScript = /<script\s([\'\"a-z\/=]*\s)?src=[\'\"]([^\'\"]*)[\'\"]([^>]*)>/,
     rStyle = /<link\s([\'\"a-z\/=]*\s)*href=[\'\"]([^\'\"]*)[\'\"]([^>]*)>/;
 
+var DEF_CONF = {
+    // 默认生成的压缩包路径
+    to: '../pack',
+
+    // 是否打包图片
+    packImg: true,
+
+    // 生成的压缩包文件名
+    file: 'pack.zip',
+
+    // 各种文件的域名和cdn前缀，打包后，生成到响应的目录
+    // index.html会生成到 ke.qq.com/mobilev2/index.html
+    httpPrefix: {
+        html: 'http://ke.qq.com/mobilev2',
+        js: 'http://7.url.cn/mobilev2',
+        css: 'http://8.url.cn/mobilev2',
+        image: 'http://9.url.cn/mobilev2'
+    },
+
+    // 配置页面的目录，相对于src，只有页面的html才打入离线包，
+    // 如果不这样处理，很多inline到页面的html也打入离线包了
+    // 默认src目录下的html认为是业务页面，其他子目录下的html不处理
+    pageDir: './',
+
+    // 是否打包所有的html，对上面的pageDir hack一下，兼容业务有多个pageDir
+    packAllHtml: false
+};
+
 // copy 文件到指定目录
 function moveTo(dir, file) {
     dir = path.join(dir, path.dirname(file.subpath.replace(/^\//, ''))).replace(/\\/mg, '/');
@@ -93,24 +121,16 @@ function uniqList(arr) {
 }
 
 
-/*
- * @TODO: 按照文件本身的依赖打包，多余的文件不打包
- * 多余的图片文件打进了离线包
- */
 module.exports = function(options, modified, total, next) {
+
+    options = _.extend({}, DEF_CONF, options);
 
     var projectPath = fis.project.getProjectPath(),
         to = _(path.join(projectPath, options.to)),
-        ext,
         md5Len = fis.config.get('project.md5Length'),
         md5Reg = new RegExp('.[0-9a-z]{' + md5Len + '}$', 'mg'),
         zipPath;
 
-    options = _.extend({}, {
-        // 默认打包image
-        packImg: true, 
-        file: 'pack.zip'
-    }, options);
 
     zipPath = path.join(to, options.file)
 
@@ -121,63 +141,37 @@ module.exports = function(options, modified, total, next) {
 
     var content,
         needFileInfo,
-        neededJs = [],
         allJs = [],
         allCss = [],
         neededCss = [],
-        sourceMap = /require.resourceMap\(([^\)]*)\)/;
+        requirePkgFiles = [],
+        pageDir = path.join(projectPath, options.pageDir)
+            .replace(/\\/g, '\/')
+            .replace(/\/$/, '');
     modified.forEach(function(file) {
-        ext = _.ext(file.toString());
-
-        /*
-         * 根目录下的html认为是业务页面
-         * 分析其中依赖的资源，包括
-         * asyncs：异步js依赖
-         * links：同步js，css，图片等资源
-         *
-         * 这里暂时只处理了js
-         * 依赖的图片还包括css中的图片，这里暂不处理图片
-         */
-        if (file.isHtmlLike && ext.dirname === projectPath) {
+        // 这里n多inline到页面的html也打包了，实际不需要的
+        if (file.isHtmlLike && (options.packAllHtml || file.dirname === pageDir)) {
             content = file.getContent();
-            // 借助于loader插件的resourceMap分析异步依赖
-            // var matches = content.match(sourceMap);
-            // if (matches) {
-            //     // asyncs 异步JS依赖
-            //     var asyncs = JSON.parse(matches[1]).res || {};
-            //     for (var key in asyncs) {
-            //         needFileInfo = fis.file.wrap(asyncs[key].url.replace(options.httpPrefix.js, ''));
-            //         // delete md5
-            //         neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
-            //     }
-            //     // 页面script标签引入的js文件
-            //     // 同步js
-            // var scriptMatches = content.match(rScript);
-            // if (scriptMatches) {
-            //     needFileInfo = fis.file.wrap(scriptMatches[2].replace(options.httpPrefix.js, ''));
-            //     neededJs.push(needFileInfo.realpathNoExt.replace(md5Reg, '') + needFileInfo.ext);
-            // }
-            // }
-            // console.log(neededJs);
 
-            /*
-             * 分析同步css文件
-             */
+            // 页面引用的css
             var cssMatches = content.match(rStyle);
             if (cssMatches) {
                 needFileInfo = fis.file.wrap(cssMatches[2].replace(options.httpPrefix.css, ''));
                 neededCss.push(needFileInfo.realpathNoExt.replace(md5Reg, '') /*+ needFileInfo.ext*/ );
             }
             usedImageList = usedImageList.concat(filterImage(file.links));
-            // console.log(file.links);
             moveTo(to + options.httpPrefix.html.replace(/^https?:\//, ''), file);
 
-            // 分析 links相关资源，copy loader里面的源代码
         } else if (file.isJsLike) {
-            // async css
             usedImageList = usedImageList.concat(filterImage(file.links));
 
             allJs.push(file);
+
+            // 根据require打包插件，打包pkg文件夹即可
+            // pkg files
+            if (/^pkg\//.test(file.id)) {
+                requirePkgFiles.push(file);
+            }
         } else if (file.isCssLike) {
 
             usedImageList = usedImageList.concat(filterImage(file.links))
@@ -191,17 +185,19 @@ module.exports = function(options, modified, total, next) {
 
 
     usedImageList = uniqList(usedImageList);
-    // 过滤js
-    allJs.forEach(function(file) {
-        if (neededJs.length > 0) {
-            if (~neededJs.indexOf(file.subpath)) {
-                moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
-            }
-        } else {
-            moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
-        }
 
-    });
+    if (requirePkgFiles.length) {
+        requirePkgFiles.forEach(function(file) {
+            moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
+        });
+    } else {
+        // 如果pkg不存在，认为没有require打包，js全量copy
+        allJs.forEach(function(file) {
+            moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
+
+        });
+
+    }
 
     allCss.forEach(function(file) {
         if (~neededCss.indexOf(file.subpathNoExt)) {
