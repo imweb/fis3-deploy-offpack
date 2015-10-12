@@ -21,6 +21,13 @@ fis.plugin('offpack', {
         css: 'http://8.url.cn/edu/activity/',
         image: 'http://9.url.cn/edu/activity/'
     },
+    // 业务页面html的dir，默认是src目录
+    // 这里存在的必要是为了不打包一些inline到页面的html
+    pageDir: '',
+    // 是否打包所有html，对上一项配置的补充
+    packAllHtml: false,
+    // 压缩包文件
+    file: 'pack.zip',
     packImg: false // 是否将image图片打入离线包，默认是true
 })
 ```
