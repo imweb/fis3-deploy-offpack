@@ -37,11 +37,19 @@ var DEF_CONF = {
     pageDir: './',
 
     // 是否打包所有的html，对上面的pageDir hack一下，兼容业务有多个pageDir
-    packAllHtml: false
+    packAllHtml: false,
+
+    //不打包文件
+    ignore: []
 };
 
 // copy 文件到指定目录
-function moveTo(dir, file) {
+function moveTo(dir, file, ignoreList) {
+    if(ignoreList && ignoreList.length) {
+        var isIgnore = isFileIgnore(ignoreList, file);
+        if (isIgnore) return;
+    }
+
     dir = path.join(dir, path.dirname(file.subpath.replace(/^\//, ''))).replace(/\\/mg, '/');
     _.mkdir(dir);
 
@@ -121,6 +129,21 @@ function uniqList(arr) {
 }
 
 
+function isFileIgnore(ignoreList, file) {
+    var isIgnore = false,
+        testRet,
+        ignore;
+    for (var i = 0; i < ignoreList.length; i++) {
+        ignore = ignoreList[i];
+        testRet = _.glob(ignore, file.subpath);
+        if (testRet) {
+            isIgnore = testRet;
+            break;
+        }
+    }
+    return isIgnore;
+}
+
 module.exports = function(options, modified, total, next) {
 
     options = _.extend({}, DEF_CONF, options);
@@ -146,13 +169,16 @@ module.exports = function(options, modified, total, next) {
         neededCss = [],
         requirePkgFiles = [],
         pageDir = path.join(projectPath, options.pageDir)
-            .replace(/\\/g, '\/')
-            .replace(/\/$/, '');
+        .replace(/\\/g, '\/')
+        .replace(/\/$/, '');
     modified.forEach(function(file) {
+        var isIgnore = isFileIgnore(options.ignore, file);
+        if (isIgnore) return;
+
         // 这里n多inline到页面的html也打包了，实际不需要的
         if (file.isHtmlLike && (options.packAllHtml || file.dirname === pageDir)) {
             content = file.getContent();
-
+            // html如果被忽略，引用的css和img都会被忽略
             // 页面引用的css
             var cssMatches = content.match(rStyle);
             if (cssMatches) {
@@ -160,8 +186,7 @@ module.exports = function(options, modified, total, next) {
                 neededCss.push(needFileInfo.realpathNoExt.replace(md5Reg, '') /*+ needFileInfo.ext*/ );
             }
             usedImageList = usedImageList.concat(filterImage(file.links));
-            moveTo(to + options.httpPrefix.html.replace(/^https?:\//, ''), file);
-
+            moveTo(to + options.httpPrefix.html.replace(/^https?:\//, ''), file, options.ignore);
         } else if (file.isJsLike) {
             usedImageList = usedImageList.concat(filterImage(file.links));
 
@@ -188,12 +213,12 @@ module.exports = function(options, modified, total, next) {
 
     if (requirePkgFiles.length) {
         requirePkgFiles.forEach(function(file) {
-            moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
+            moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file, options.ignore);
         });
     } else {
         // 如果pkg不存在，认为没有require打包，js全量copy
         allJs.forEach(function(file) {
-            moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file);
+            moveTo(to + options.httpPrefix.js.replace(/^https?:\//, ''), file, options.ignore);
 
         });
 
@@ -201,7 +226,7 @@ module.exports = function(options, modified, total, next) {
 
     allCss.forEach(function(file) {
         if (~neededCss.indexOf(file.subpathNoExt)) {
-            moveTo(to + options.httpPrefix.css.replace(/^https?:\//, ''), file);
+            moveTo(to + options.httpPrefix.css.replace(/^https?:\//, ''), file, options.ignore);
         }
     });
 
@@ -209,7 +234,7 @@ module.exports = function(options, modified, total, next) {
     if (options.packImg) {
         allImagesList.forEach(function(file) {
             if (~usedImageList.indexOf(file.subpath)) {
-                moveTo(to + options.httpPrefix.image.replace(/^https?:\//, ''), file);
+                moveTo(to + options.httpPrefix.image.replace(/^https?:\//, ''), file, options.ignore);
             }
         });
     }
