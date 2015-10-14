@@ -45,7 +45,7 @@ var DEF_CONF = {
 
 // copy 文件到指定目录
 function moveTo(dir, file, ignoreList) {
-    if(ignoreList && ignoreList.length) {
+    if (ignoreList && ignoreList.length) {
         var isIgnore = isFileIgnore(ignoreList, file);
         if (isIgnore) return;
     }
@@ -144,6 +144,43 @@ function isFileIgnore(ignoreList, file) {
     return isIgnore;
 }
 
+function formatDate(pattern, date) {
+    var formatNumber;
+    if (typeof date === 'number') {
+        date = new Date(date);
+    }
+    formatNumber = function(data, format) {
+        format = format.length;
+        data = data || 0;
+        if (format === 1) {
+            return data;
+        } else {
+            return String(Math.pow(10, format) + data).slice(-format);
+        }
+    };
+    return pattern.replace(/([YMDhsm])\1*/g, function(format) {
+        switch (format.charAt()) {
+            case 'Y':
+                return formatNumber(date.getFullYear(), format);
+            case 'M':
+                return formatNumber(date.getMonth() + 1, format);
+            case 'D':
+                return formatNumber(date.getDate(), format);
+            case 'w':
+                return date.getDay() + 1;
+            case 'h':
+                return formatNumber(date.getHours(), format);
+            case 'm':
+                return formatNumber(date.getMinutes(), format);
+            case 's':
+                return formatNumber(date.getSeconds(), format);
+            default:
+                return '';
+        }
+    });
+}
+
+
 module.exports = function(options, modified, total, next) {
 
     options = _.extend({}, DEF_CONF, options);
@@ -186,6 +223,10 @@ module.exports = function(options, modified, total, next) {
                 neededCss.push(needFileInfo.realpathNoExt.replace(md5Reg, '') /*+ needFileInfo.ext*/ );
             }
             usedImageList = usedImageList.concat(filterImage(file.links));
+
+            content = content.replace(/<\/head>/, '<script>window.isPack=true;window.packVersion="' + formatDate('YYYYMMDDhhssmm', new Date()) + '";</script>$&');
+            file.setContent(content);
+            
             moveTo(to + options.httpPrefix.html.replace(/^https?:\//, ''), file, options.ignore);
         } else if (file.isJsLike) {
             usedImageList = usedImageList.concat(filterImage(file.links));

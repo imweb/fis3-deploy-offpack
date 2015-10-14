@@ -1,6 +1,6 @@
 {
     "name": "fis3-deploy-offpack",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "fis3 offline package",
     "main": "index.js",
     "scripts": {
