@@ -28,7 +28,10 @@ fis.plugin('offpack', {
     packAllHtml: false,
     // 压缩包文件
     file: 'pack.zip',
-    packImg: false // 是否将image图片打入离线包，默认是true
+    // 是否将image图片打入离线包，默认是true,
+    packImg: false, 
+    // 过滤不打包的文件，使用glob表达式
+    ignore: []
 })
 ```
 
