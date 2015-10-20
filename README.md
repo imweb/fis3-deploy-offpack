@@ -22,7 +22,12 @@ fis.plugin('offpack', {
         image: 'http://9.url.cn/edu/activity/'
     },
     // glob表达式，自定义需要打包的文件，如果不填，默认打包全部文件
-    packSrc: []
+    packSrc: [
+        '/*.html',
+        '**.{css,scss}',
+        '**.{png,gif,jpg}',
+        'pkg/**.js'
+    ]
 })
 ```
 
