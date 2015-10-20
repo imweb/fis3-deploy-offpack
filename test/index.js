@@ -26,7 +26,7 @@ function wrapper(_options) {
     }
 }
 
-describe('fis-postpackager-iconfont', function() {
+describe('fis3-deploy-offpack', function() {
     var root = path.join(__dirname, 'src');
 
     fis.project.setProjectRoot(root);
@@ -88,7 +88,13 @@ describe('fis-postpackager-iconfont', function() {
                         css: 'http://8.url.cn/edu/activity',
                         image: 'http://9.url.cn/edu/activity'
                     },
-                    packImg: false
+                    packSrc: [
+                        '**.html',
+                        '**.{css,scss}',
+                        '**.{png,jpg,gif}',
+                        '**.js',
+                        '!**/common/report*.js'
+                    ]
                 })
             });
     });
@@ -103,10 +109,10 @@ describe('fis-postpackager-iconfont', function() {
             // 文件是否生成
             expect(fs.existsSync(path.join(pack, 'pack.zip'))).to.be.true;
             expect(fs.existsSync(path.join(pack, 'ke.qq.com/activity', 'index.html'))).to.be.true;
-            expect(fs.existsSync(path.join(pack, '9.url.cn/edu/activity', 'pages/index/img/p2.jpg'))).to.be.false;
+            expect(fs.existsSync(path.join(pack, '9.url.cn/edu/activity', 'pages/index/img/p2.jpg'))).to.be.true;
             expect(fs.existsSync(path.join(pack, '8.url.cn/edu/activity', 'pages/index/main.css'))).to.be.true;
             expect(fs.existsSync(path.join(pack, '7.url.cn/edu/activity', 'pages/index/main.js'))).to.be.true;
-
+            expect(fs.existsSync(path.join(pack, '7.url.cn/edu/activity', 'modules/common/report.js'))).to.be.false;
             console.log('release end');
         });
     });
