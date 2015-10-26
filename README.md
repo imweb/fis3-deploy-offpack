@@ -2,7 +2,7 @@
 
 将项目产出成离线包，http路径变成了本地的文件路径。
 
-按需打包需要的js和css。
+打包使用的http路劲是 fis-conf.js 中配置的domain。
 
 ##### js 打包
 1. 将require打包生成pkg目录打入离线包，否则，所有文件全部打入离线包。
@@ -14,13 +14,6 @@
 fis.plugin('offpack', {
     // 产出目录
     to: '../pack',
-    httpPrefix: {
-        // CDN路径，最后的文件会产出到  pack/7.url.cn/edu/activity/文件相对路径
-        html: 'http://ke.qq.com/activity/',
-        js: 'http://7.url.cn/edu/activity/',
-        css: 'http://8.url.cn/edu/activity/',
-        image: 'http://9.url.cn/edu/activity/'
-    },
     // glob表达式，自定义需要打包的文件，如果不填，默认打包全部文件
     packSrc: [
         '/*.html',
@@ -31,6 +24,3 @@ fis.plugin('offpack', {
 })
 ```
 
-
-##### image打包
-获取html、scss、async.scss中link到的image，产出到最终目录，只有被引用的图片才会被打到离线包中。
