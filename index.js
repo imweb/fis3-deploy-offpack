@@ -1,7 +1,6 @@
 /*
- * 生成离线包
- * TODO: 按需打包js文件
- * packager 插件将需要的js生成到pkg中，deploy只打包pkg中的js
+ * 0.4.0
+ * 1. 不用配置httpPrefix，根据file的domain属性来处理
  */
 'use strict';
 var path = require('path'),
@@ -9,25 +8,12 @@ var path = require('path'),
     fs = _.fs,
     archiver = require('archiver');
 
-
-/*var rScript = /<script\s([\'\"a-z\/=]*\s)?src=[\'\"]([^\'\"]*)[\'\"]([^>]*)>/,
-    rStyle = /<link\s([\'\"a-z\/=]*\s)*href=[\'\"]([^\'\"]*)[\'\"]([^>]*)>/;*/
-
 var DEF_CONF = {
     // 默认生成的压缩包路径
     to: '../pack',
 
     // 生成的压缩包文件名
     file: 'pack.zip',
-
-    // 各种文件的域名和cdn前缀，打包后，生成到响应的目录
-    // index.html会生成到 ke.qq.com/mobilev2/index.html
-    httpPrefix: {
-        html: 'http://ke.qq.com/mobilev2',
-        js: 'http://7.url.cn/mobilev2',
-        css: 'http://8.url.cn/mobilev2',
-        image: 'http://9.url.cn/mobilev2'
-    },
 
     // 后定义的正则优先级更高
     packSrc: []
@@ -135,6 +121,7 @@ function getInAndExclude(conf) {
     return ret;
 }
 
+
 module.exports = function(options, modified, total, next) {
 
     options = _.extend({}, DEF_CONF, options);
@@ -153,6 +140,7 @@ module.exports = function(options, modified, total, next) {
 
     var packFileList = [];
 
+    // 正则匹配获取需要的打包的文件
     modified.forEach(function(file) {
         if (options.packSrc.length) {
             if (_.filter(file.subpath, inAndEx.include, inAndEx.exclude)) {
@@ -161,25 +149,16 @@ module.exports = function(options, modified, total, next) {
         } else {
             packFileList.push(file);
         }
-
     });
 
     packFileList.forEach(function(file) {
-        var ext;
         if (file.isHtmlLike) {
-            ext = 'html';
             var content = file.getContent();
             content = content.replace(/<\/head>/, '<script>window.isPack=true;window.packVersion="' + formatDate('YYYYMMDDhhssmm', new Date()) + '";</script>$&');
             file.setContent(content);
-        } else if (file.isCssLike) {
-            ext = 'css';
-        } else if (file.isJsLike) {
-            ext = 'js';
-        } else if (file.isImage()) {
-            ext = 'image';
         }
-
-        moveTo(to + options.httpPrefix[ext].replace(/^https?:\//, ''), file);
+        moveTo(to + file.domain.replace(/^https?:\//, ''), file);
+        
     });
 
     zip(zipPath);
