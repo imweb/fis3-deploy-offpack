@@ -37,7 +37,7 @@ function zip(zipPath) {
     archive.bulk([{
         expand: true,
         cwd: path.dirname(zipPath),
-        src: ['*.url.cn/**', '*.qq.com/**']
+        src: [/*'*.url.cn/**', '*.qq.com/**'*/'**', '!' + path.basename(zipPath)]
     }]);
 
     archive.on('error', function() {
