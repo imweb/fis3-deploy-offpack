@@ -31,13 +31,16 @@ function moveTo(dir, file) {
 }
 
 // zip folder
-function zip(zipPath) {
-    var archive = archiver('zip');
-    archive.pipe(fs.createWriteStream(zipPath));
+function zip(options) {
+    var zipPath = path.join(options.projectPath, options.to, options.file);
+    _.mkdir(path.dirname(zipPath));
+    var archive = archiver('zip'),
+        ws = fs.createWriteStream(zipPath);
+    archive.pipe(ws);
     archive.bulk([{
         expand: true,
         cwd: path.dirname(zipPath),
-        src: [/*'*.url.cn/**', '*.qq.com/**'*/'**', '!' + path.basename(zipPath)]
+        src: ['**', '!' + path.basename(zipPath)]
     }]);
 
     archive.on('error', function() {
@@ -45,22 +48,14 @@ function zip(zipPath) {
     });
 
     archive.finalize();
-}
 
-// 删除目录
-function rmdir(dir) {
-    var files = [];
-    if (fs.existsSync(dir)) {
-        files = fs.readdirSync(dir);
-        files.forEach(function(file) {
-            var curPath = path.join(dir, file);
-            if (fs.lstatSync(curPath).isDirectory()) { // recurse
-                rmdir(curPath);
-            } else {
-                fs.unlinkSync(curPath);
-            }
+    if (options.zipTo) {
+        ws.on('close', function() {
+            var content = fs.readFileSync(zipPath),
+                offline = path.join(options.projectPath, options.zipTo);
+            _.mkdir(offline);
+            fs.writeFileSync(path.join(offline, options.file), content, 'utf-8');
         });
-        fs.rmdirSync(dir);
     }
 }
 
@@ -127,15 +122,15 @@ module.exports = function(options, modified, total, next) {
     options = _.extend({}, DEF_CONF, options);
 
     var projectPath = fis.project.getProjectPath(),
-        to = _(path.join(projectPath, options.to)),
-        zipPath;
+        to = path.join(projectPath, options.to);
 
+
+    options.projectPath = projectPath;
 
     var inAndEx = getInAndExclude(options.packSrc);
+    // zipPath = path.join(to, options.file);
 
-    zipPath = path.join(to, options.file);
-
-    rmdir(to);
+    _.del(to);
 
 
     var packFileList = [];
@@ -161,7 +156,7 @@ module.exports = function(options, modified, total, next) {
         
     });
 
-    zip(zipPath);
+    zip(options);
 
     next();
 };
