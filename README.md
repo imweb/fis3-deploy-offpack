@@ -18,7 +18,7 @@ fis.match('**.js', {
 fis.plugin('offpack', {
     // 产出目录
     to: '../pack',
-    zipTo: '../offline', // zip文件单独copy到这里
+    zipTo: '../publish/offline', // zip文件单独copy到这里
     // glob表达式，自定义需要打包的文件，如果不填，默认打包全部文件
     packSrc: [
         '/*.html',
